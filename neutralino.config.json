@@ -1,0 +1,35 @@
+{
+  "applicationId": "com.naosim.workbartimer",
+  "version": "1.0.0",
+  "defaultMode": "window",
+  "documentRoot": "/dist/",
+  "url": "/",
+  "enableServer": true,
+  "enableNativeAPI": true,
+  "port": 0,
+  "modes": {
+    "window": {
+      "title": "Work Bar Timer",
+      "width": 640,
+      "height": 300,
+      "minWidth": 640,
+      "minHeight": 300,
+      "resizable": true,
+      "alwaysOnTop": true,
+      "borderless": true,
+      "enableInspector": true
+    }
+  },
+  "nativeAllowList": [
+    "app.*",
+    "window.*",
+    "os.*"
+  ],
+  "cli": {
+    "resourcesPath": "/dist/",
+    "clientLibrary": "/dist/neutralino.js",
+    "binaryName": "WorkBarTimer",
+    "binaryVersion": "6.8.0",
+    "clientVersion": "6.8.0"
+  }
+}
