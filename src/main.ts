@@ -557,29 +557,18 @@ timer.onTick(() => {
   renderUI();
 
   // End beeps (3, 2, 1 seconds) for COUNT_DOWN and REPEAT
-  const mode = timer.getMode();
   const state = timer.getState();
   if (state === 'RUNNING') {
-    let remaining = -1;
-    if (mode === 'COUNT_DOWN') {
-      remaining = timer.getConfig().durationSeconds - timer.getElapsedSeconds();
-    } else if (mode === 'REPEAT') {
-      const target = timer.getCurrentPhase() === 'WORK'
-        ? timer.getConfig().repeatWorkSeconds
-        : timer.getConfig().repeatBreakSeconds;
-      remaining = target - timer.getPhaseElapsedSeconds();
-    }
+    const remaining = timer.getRemainingSeconds();
 
     if (remaining > 0) {
-      const nextSecond = Math.ceil(remaining);
-
       // Remaining increased (user added time / phase transition) → reset
-      if (lastBeepSecond !== -1 && nextSecond > lastBeepSecond) {
+      if (lastBeepSecond !== -1 && remaining > lastBeepSecond) {
         lastBeepSecond = -1;
       }
 
-      if (nextSecond <= 3 && nextSecond !== lastBeepSecond) {
-        lastBeepSecond = nextSecond;
+      if (remaining <= 3 && remaining !== lastBeepSecond) {
+        lastBeepSecond = remaining;
         playSound(880, 'sine', 0.06, 0.08);
       }
     }

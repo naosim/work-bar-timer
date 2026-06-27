@@ -126,63 +126,57 @@ export class Timer {
       return;
     }
 
-    switch (this.mode) {
-      case 'COUNT_DOWN':
-        this.elapsedSeconds += deltaTimeSeconds;
-        if (this.elapsedSeconds >= this.durationSeconds) {
-          // Adjust overtime starting point
-          this.overtimeSeconds = this.elapsedSeconds - this.durationSeconds;
-          this.elapsedSeconds = this.durationSeconds;
-          this.setState('TIME_UP');
-          if (this.timeUpCallback) this.timeUpCallback();
-        }
-        break;
+    if (this.mode === 'COUNT_UP') {
+      this.elapsedSeconds += deltaTimeSeconds;
+      const maxStopwatchSeconds = 199 * 60 + 59;
+      if (this.elapsedSeconds >= maxStopwatchSeconds) {
+        this.elapsedSeconds = maxStopwatchSeconds;
+        this.setState('TIME_UP');
+        if (this.timeUpCallback) this.timeUpCallback();
+      }
+      this.triggerTick();
+      return;
+    }
 
-      case 'COUNT_UP':
-        this.elapsedSeconds += deltaTimeSeconds;
-        // Hard limit at 199m 59s
-        const maxStopwatchSeconds = 199 * 60 + 59;
-        if (this.elapsedSeconds >= maxStopwatchSeconds) {
-          this.elapsedSeconds = maxStopwatchSeconds;
-          this.setState('TIME_UP');
-          if (this.timeUpCallback) this.timeUpCallback();
-        }
-        break;
+    // COUNT_DOWN and REPEAT: advance current elapsed
+    if (this.mode === 'COUNT_DOWN') {
+      this.elapsedSeconds += deltaTimeSeconds;
+    } else {
+      this.phaseElapsedSeconds += deltaTimeSeconds;
+    }
 
-      case 'REPEAT':
-        this.phaseElapsedSeconds += deltaTimeSeconds;
-        const currentTarget = this.currentPhase === 'WORK' ? this.repeatWorkSeconds : this.repeatBreakSeconds;
-        
-        if (this.phaseElapsedSeconds >= currentTarget) {
-          // Carry over excess time to the next phase
-          let excess = this.phaseElapsedSeconds - currentTarget;
-          this.phaseElapsedSeconds = 0;
+    const target = this.getCurrentTarget();
+    const elapsed = this.getCurrentElapsed();
 
-          if (this.currentPhase === 'WORK') {
-            this.currentPhase = 'BREAK';
-            if (this.phaseTransitionCallback) {
-              this.phaseTransitionCallback(this.currentPhase, this.currentCycle);
-            }
-            // Tick remainder into break phase
-            this.tick(excess);
-          } else {
-            // Break finished
-            if (this.currentCycle < this.repeatCycles) {
-              this.currentCycle++;
-              this.currentPhase = 'WORK';
-              if (this.phaseTransitionCallback) {
-                this.phaseTransitionCallback(this.currentPhase, this.currentCycle);
-              }
-              // Tick remainder into next work cycle
-              this.tick(excess);
-            } else {
-              // Entire Pomodoro repeat sequence finished
-              this.setState('TIME_UP');
-              if (this.timeUpCallback) this.timeUpCallback();
-            }
+    if (elapsed >= target) {
+      if (this.mode === 'COUNT_DOWN') {
+        this.overtimeSeconds = elapsed - target;
+        this.elapsedSeconds = target;
+        this.setState('TIME_UP');
+        if (this.timeUpCallback) this.timeUpCallback();
+      } else {
+        // REPEAT phase transition
+        const excess = elapsed - target;
+        this.phaseElapsedSeconds = 0;
+
+        if (this.currentPhase === 'WORK') {
+          this.currentPhase = 'BREAK';
+          if (this.phaseTransitionCallback) {
+            this.phaseTransitionCallback(this.currentPhase, this.currentCycle);
           }
+          this.tick(excess);
+        } else if (this.currentCycle < this.repeatCycles) {
+          this.currentCycle++;
+          this.currentPhase = 'WORK';
+          if (this.phaseTransitionCallback) {
+            this.phaseTransitionCallback(this.currentPhase, this.currentCycle);
+          }
+          this.tick(excess);
+        } else {
+          this.setState('TIME_UP');
+          if (this.timeUpCallback) this.timeUpCallback();
         }
-        break;
+      }
     }
 
     this.triggerTick();
@@ -217,6 +211,30 @@ export class Timer {
     return this.phaseElapsedSeconds;
   }
 
+  /** Current countdown target in seconds (0 for COUNT_UP). */
+  private getCurrentTarget(): number {
+    if (this.mode === 'COUNT_DOWN') return this.durationSeconds;
+    if (this.mode === 'REPEAT')
+      return this.currentPhase === 'WORK' ? this.repeatWorkSeconds : this.repeatBreakSeconds;
+    return 0;
+  }
+
+  /** Current countdown elapsed in seconds (0 for COUNT_UP). */
+  private getCurrentElapsed(): number {
+    if (this.mode === 'REPEAT') return this.phaseElapsedSeconds;
+    if (this.mode === 'COUNT_DOWN') return this.elapsedSeconds;
+    return 0;
+  }
+
+  /**
+   * Remaining seconds for COUNT_DOWN and REPEAT modes.
+   * Returns 0 for TIME_UP and COUNT_UP.
+   */
+  public getRemainingSeconds(): number {
+    if (this.mode === 'COUNT_UP' || this.state === 'TIME_UP') return 0;
+    return Math.max(0, Math.ceil(this.getCurrentTarget() - this.getCurrentElapsed()));
+  }
+
   /**
    * Returns the total remaining time across all remaining pomodoro phases.
    */
@@ -227,8 +245,7 @@ export class Timer {
       return this.repeatCycles * (this.repeatWorkSeconds + this.repeatBreakSeconds);
     }
 
-    const target = this.currentPhase === 'WORK' ? this.repeatWorkSeconds : this.repeatBreakSeconds;
-    let total = Math.ceil(Math.max(0, target - this.phaseElapsedSeconds));
+    let total = this.getRemainingSeconds();
 
     if (this.currentPhase === 'WORK') {
       total += this.repeatBreakSeconds;
@@ -246,30 +263,17 @@ export class Timer {
   public getSegments(): Segment[] {
     let litCount = 0;
 
-    if (this.mode === 'COUNT_DOWN') {
-      if (this.state === 'IDLE') {
-        litCount = this.durationSeconds > 0 ? 20 : 0;
-      } else if (this.state === 'TIME_UP') {
-        litCount = 0;
-      } else {
-        const remaining = Math.max(0, this.durationSeconds - this.elapsedSeconds);
-        const ratio = this.durationSeconds > 0 ? remaining / this.durationSeconds : 0;
-        litCount = Math.max(0, Math.min(20, Math.ceil(ratio * 20)));
-      }
-    } else if (this.mode === 'COUNT_UP') {
+    if (this.mode === 'COUNT_UP') {
       // 1 segment = 10 minutes = 600 seconds
       litCount = Math.min(20, Math.floor(this.elapsedSeconds / 600));
-    } else if (this.mode === 'REPEAT') {
-      if (this.state === 'IDLE') {
-        litCount = 20;
-      } else if (this.state === 'TIME_UP') {
-        litCount = 0;
-      } else {
-        const currentTarget = this.currentPhase === 'WORK' ? this.repeatWorkSeconds : this.repeatBreakSeconds;
-        const remaining = Math.max(0, currentTarget - this.phaseElapsedSeconds);
-        const ratio = remaining / currentTarget;
-        litCount = Math.max(0, Math.min(20, Math.ceil(ratio * 20)));
-      }
+    } else if (this.state === 'TIME_UP') {
+      litCount = 0;
+    } else if (this.state === 'IDLE') {
+      litCount = this.mode === 'COUNT_DOWN' && this.durationSeconds === 0 ? 0 : 20;
+    } else {
+      const total = this.getCurrentTarget();
+      const ratio = total > 0 ? this.getRemainingSeconds() / total : 0;
+      litCount = Math.max(0, Math.min(20, Math.ceil(ratio * 20)));
     }
 
     const segments: Segment[] = [];
@@ -302,22 +306,13 @@ export class Timer {
     let secondsToDisplay = 0;
     let isOvertime = false;
 
-    if (this.mode === 'COUNT_DOWN') {
-      if (this.state === 'TIME_UP') {
-        secondsToDisplay = this.overtimeSeconds;
-        isOvertime = true;
-      } else {
-        secondsToDisplay = Math.ceil(Math.max(0, this.durationSeconds - this.elapsedSeconds));
-      }
+    if (this.mode === 'COUNT_DOWN' && this.state === 'TIME_UP') {
+      secondsToDisplay = this.overtimeSeconds;
+      isOvertime = true;
     } else if (this.mode === 'COUNT_UP') {
       secondsToDisplay = this.elapsedSeconds;
-    } else if (this.mode === 'REPEAT') {
-      if (this.state === 'TIME_UP') {
-        secondsToDisplay = 0;
-      } else {
-        const currentTarget = this.currentPhase === 'WORK' ? this.repeatWorkSeconds : this.repeatBreakSeconds;
-        secondsToDisplay = Math.ceil(Math.max(0, currentTarget - this.phaseElapsedSeconds));
-      }
+    } else {
+      secondsToDisplay = this.getRemainingSeconds();
     }
 
     // Round up or down? Standard timers round down (floor), except that we want to show 
