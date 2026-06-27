@@ -228,7 +228,7 @@ export class Timer {
     }
 
     const target = this.currentPhase === 'WORK' ? this.repeatWorkSeconds : this.repeatBreakSeconds;
-    let total = Math.max(0, Math.floor(target - this.phaseElapsedSeconds));
+    let total = Math.ceil(Math.max(0, target - this.phaseElapsedSeconds));
 
     if (this.currentPhase === 'WORK') {
       total += this.repeatBreakSeconds;
@@ -307,7 +307,7 @@ export class Timer {
         secondsToDisplay = this.overtimeSeconds;
         isOvertime = true;
       } else {
-        secondsToDisplay = Math.max(0, this.durationSeconds - this.elapsedSeconds);
+        secondsToDisplay = Math.ceil(Math.max(0, this.durationSeconds - this.elapsedSeconds));
       }
     } else if (this.mode === 'COUNT_UP') {
       secondsToDisplay = this.elapsedSeconds;
@@ -316,7 +316,7 @@ export class Timer {
         secondsToDisplay = 0;
       } else {
         const currentTarget = this.currentPhase === 'WORK' ? this.repeatWorkSeconds : this.repeatBreakSeconds;
-        secondsToDisplay = Math.max(0, currentTarget - this.phaseElapsedSeconds);
+        secondsToDisplay = Math.ceil(Math.max(0, currentTarget - this.phaseElapsedSeconds));
       }
     }
 
