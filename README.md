@@ -92,3 +92,115 @@ neu build       # → dist-WorkBarTimer/ に各プラットフォームのバイ
 | UI | HTML5 / CSS3（カスタム、フレームワークなし） |
 | 音声 | Web Audio API（ファイル不要のシンセサイズ音） |
 | CI/CD | GitHub Actions → GitHub Pages |
+
+## REST API（デスクトップ版）
+
+デスクトップ版（Neutralinojs）起動時に `extensions/timer-api/index.js` が自動で起動し、`http://127.0.0.1:4321` で REST API を提供します。環境変数 `TIMER_API_PORT` でポートを変更可能です。
+
+### エンドポイント
+
+| Method | Path | 説明 |
+|---|---|---|
+| `GET` | `/api/status` | タイマーの全状態を取得 |
+| `POST` | `/api/timer/start` | タイマー開始 |
+| `POST` | `/api/timer/pause` | 一時停止 |
+| `POST` | `/api/timer/reset` | リセット |
+| `POST` | `/api/timer/adjust` | カウントダウン時間調整 |
+| `POST` | `/api/config` | タイマー設定の変更 |
+| `POST` | `/api/exec` | 任意の JavaScript コードを実行 |
+
+### レスポンス形式
+
+成功時は JSON レスポンスを返します。エラー時は `{ "error": "..." }` で返します。
+
+### 使い方
+
+```bash
+# 状態取得
+curl.exe http://127.0.0.1:4321/api/status
+
+# タイマー開始
+curl.exe -X POST http://127.0.0.1:4321/api/timer/start
+
+# 一時停止
+curl.exe -X POST http://127.0.0.1:4321/api/timer/pause
+
+# リセット
+curl.exe -X POST http://127.0.0.1:4321/api/timer/reset
+
+# 時間調整（秒数を delta で指定）
+curl.exe -X POST http://127.0.0.1:4321/api/timer/adjust \
+  -H "Content-Type: application/json" \
+  -d '{"delta": 60}'
+
+# 設定変更
+curl.exe -X POST http://127.0.0.1:4321/api/config \
+  -H "Content-Type: application/json" \
+  -d '{"mode":"REPEAT","repeatWorkSeconds":1500,"repeatBreakSeconds":300,"repeatCycles":4}'
+
+# 任意 JS コード実行（return で値を返せる）
+curl.exe -X POST http://127.0.0.1:4321/api/exec \
+  -H "Content-Type: application/json" \
+  -d '{"code":"return timer.getRemainingSeconds()"}'
+```
+
+### GET /api/status レスポンス例
+
+```json
+{
+  "state": "IDLE",
+  "mode": "COUNT_DOWN",
+  "durationSeconds": 300,
+  "elapsedSeconds": 0,
+  "remainingSeconds": 300,
+  "overtimeSeconds": 0,
+  "repeatWorkSeconds": 1500,
+  "repeatBreakSeconds": 300,
+  "repeatCycles": 4,
+  "currentCycle": 1,
+  "currentPhase": "WORK",
+  "phaseElapsedSeconds": 0,
+  "totalRemainingSeconds": 0,
+  "displayTime": "05:00",
+  "isOvertime": false
+}
+```
+
+### POST /api/exec
+
+`code` フィールドに JavaScript コードを指定します。コードは `async function` の中で実行されるため、`await` が使用可能です。`return` 文で値を返せます。
+
+```bash
+# 現在の残り秒数を取得
+curl.exe -X POST http://127.0.0.1:4321/api/exec \
+  -H "Content-Type: application/json" \
+  -d '{"code":"return timer.getRemainingSeconds()"}'
+
+# タイマーを開始して状態を返す
+curl.exe -X POST http://127.0.0.1:4321/api/exec \
+  -H "Content-Type: application/json" \
+  -d '{"code":"timer.start(); return timer.getState()"}'
+
+# 設定を変更してから状態を取得
+curl.exe -X POST http://127.0.0.1:4321/api/exec \
+  -H "Content-Type: application/json" \
+  -d '{"code":"timer.configure({ mode: \'COUNT_DOWN\', durationSeconds: 600 }); return timer.getConfig()"}'
+```
+
+### アーキテクチャ
+
+REST API は Neutralinojs 拡張機能として実装されています。HTTP サーバー（Node.js）は Neutralino コアと WebSocket で双方向通信し、HTTP リクエストをタイマー操作に変換します。
+
+```
+HTTP Client ──→ extensions/timer-api/index.js (HTTP Server)
+                    │
+                    ├── WebSocket ──→ Neutralino Core
+                    │                      │
+                    │                      ├──→ WebView2 (Timer)
+                    │                      │         │
+                    │                      │←────────┘
+                    │                      │
+                    │←─────────────────────┘
+                    │
+HTTP Client ←──────┘
+```

@@ -21,11 +21,20 @@
       "enableInspector": true
     }
   },
+  "enableExtensions": true,
+  "extensions": [
+    {
+      "id": "js.neutralino.timerapi",
+      "command": "node ${NL_PATH}/extensions/timer-api/index.js"
+    }
+  ],
   "nativeAllowList": [
     "app.*",
     "window.*",
     "os.*",
-    "filesystem.*"
+    "filesystem.*",
+    "events.*",
+    "extensions.*"
   ],
   "cli": {
     "resourcesPath": "/dist/",

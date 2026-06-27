@@ -2,6 +2,7 @@ import { Timer, TimerMode, TimerConfig, TimerState } from './Timer';
 
 // --- Global App Context ---
 const timer = new Timer();
+(window as any).timer = timer;
 let lastTimestamp = performance.now();
 let wakeLock: WakeLockSentinel | null = null;
 let alarmInterval: any = null;
@@ -503,14 +504,100 @@ async function setupDesktopFeatures() {
     await Neutralino.window.setAlwaysOnTop(isAlwaysOnTop);
 
     // Register event for application close (optional cleanup)
-    Neutralino.events.on('windowClose', () => {
+    Neutralino.events.on('windowClose', async () => {
+      try {
+        const nlPath = (window as any).NL_PATH || '.';
+        await Neutralino.filesystem.remove(nlPath + '/.tmp/timer-api-running');
+      } catch {}
       Neutralino.app.exit();
     });
+
+    // Register REST API extension event handler
+    setupTimerApi();
 
   } catch (e) {
     console.warn('Desktop environment initialization failed:', e);
     alert('[Work Bar Timer] Desktop初期化エラー:\n' + (e instanceof Error ? e.message : String(e)));
   }
+}
+
+// --- REST API Extension (File-based IPC) ---
+function setupTimerApi() {
+  const NL_PATH = (window as any).NL_PATH || '.';
+  const reqFile = NL_PATH + '/.tmp/timer-api-req.json';
+  const resFile = NL_PATH + '/.tmp/timer-api-res.json';
+
+  async function processRequest() {
+    try {
+      const reqText = await Neutralino.filesystem.readFile(reqFile);
+      const req = JSON.parse(reqText);
+      await Neutralino.filesystem.remove(reqFile);
+
+      let result: any = { success: true };
+
+      switch (req.action) {
+        case 'getStatus':
+          result = {
+            state: timer.getState(),
+            mode: timer.getMode(),
+            durationSeconds: timer.getConfig().durationSeconds,
+            elapsedSeconds: timer.getElapsedSeconds(),
+            remainingSeconds: timer.getRemainingSeconds(),
+            overtimeSeconds: timer.getOvertimeSeconds(),
+            repeatWorkSeconds: timer.getConfig().repeatWorkSeconds,
+            repeatBreakSeconds: timer.getConfig().repeatBreakSeconds,
+            repeatCycles: timer.getConfig().repeatCycles,
+            currentCycle: timer.getCurrentCycle(),
+            currentPhase: timer.getCurrentPhase(),
+            phaseElapsedSeconds: timer.getPhaseElapsedSeconds(),
+            totalRemainingSeconds: timer.getTotalRemainingSeconds(),
+            displayTime: timer.getDisplayTime().display,
+            isOvertime: timer.getDisplayTime().isOvertime,
+          };
+          break;
+
+        case 'start':
+          timer.start();
+          break;
+
+        case 'pause':
+          timer.pause();
+          break;
+
+        case 'reset':
+          timer.reset();
+          break;
+
+        case 'adjust':
+          timer.adjustDuration(req.payload.delta || 0);
+          break;
+
+        case 'configure':
+          timer.configure(req.payload);
+          break;
+
+        case 'exec': {
+          const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+          const fn = new AsyncFunction(req.payload.code);
+          const execResult = await fn();
+          result = execResult !== undefined ? execResult : { success: true };
+          break;
+        }
+      }
+
+      const resultPayload = (typeof result === 'object' && result !== null)
+        ? { requestId: req.requestId, ...result }
+        : { requestId: req.requestId, result };
+      await Neutralino.filesystem.writeFile(resFile, JSON.stringify(resultPayload));
+    } catch (_e) {
+      // No request file or parse error - ignore
+    }
+  }
+
+  setInterval(processRequest, 100);
+
+  // Create marker file for extension lifecycle detection
+  Neutralino.filesystem.writeFile(NL_PATH + '/.tmp/timer-api-running', '').catch(() => {});
 }
 
 // --- Callback wiring from Domain Timer ---

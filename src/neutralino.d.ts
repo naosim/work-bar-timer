@@ -18,6 +18,17 @@ declare const Neutralino: {
     exit: () => Promise<void>;
   };
   events: {
-    on: (event: string, handler: () => void) => void;
+    on: (event: string, handler: (event: { detail: any }) => void) => void;
+    broadcast: (event: string, data: any) => Promise<void>;
+  };
+  extensions: {
+    dispatch: (extensionId: string, eventName: string, data: any) => Promise<void>;
+  };
+  filesystem: {
+    readFile: (path: string) => Promise<string>;
+    writeFile: (path: string, content: string) => Promise<void>;
+    appendFile: (path: string, content: string) => Promise<void>;
+    remove: (path: string) => Promise<void>;
+    exists: (path: string) => Promise<boolean>;
   };
 };
