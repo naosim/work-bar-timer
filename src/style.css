@@ -109,8 +109,7 @@ body.is-desktop .titlebar {
 }
 
 /* Desktop mode: compact modal to fit 240px window */
-body.is-desktop .modal-header,
-body.is-desktop .save-button-row {
+body.is-desktop .modal-header {
   padding: 10px 16px;
 }
 
@@ -128,19 +127,6 @@ body.is-desktop .settings-group {
 
 body.is-desktop .settings-group label {
   font-size: 11px;
-}
-
-body.is-desktop .duration-inputs input {
-  padding: 6px 10px;
-  font-size: 13px;
-}
-
-body.is-desktop .pomodoro-inputs {
-  gap: 6px;
-}
-
-body.is-desktop .pomodoro-inputs .duration-inputs {
-  gap: 8px;
 }
 
 body.is-desktop .checkbox-container {
@@ -207,11 +193,11 @@ body.is-desktop .preferences-group h4 {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 16px;
-  max-width: 600px;
+  padding: 12px 16px;
+  max-width: 360px;
   width: 100%;
   margin: 0 auto;
-  gap: 16px;
+  gap: 12px;
 }
 
 /* --- Bar Display UI --- */
@@ -287,14 +273,14 @@ body.is-desktop .preferences-group h4 {
 
 /* --- Dashboard Panel --- */
 .dashboard-panel {
-  display: grid;
-  grid-template-columns: 1.5fr 1fr;
-  align-items: center;
-  gap: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 280px;
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: 12px;
-  padding: 16px;
+  padding: 14px 16px;
   backdrop-filter: blur(12px);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
 }
@@ -303,11 +289,24 @@ body.is-desktop .preferences-group h4 {
 .timer-display-group {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  gap: 10px;
+}
+
+.clock-area {
+  flex-shrink: 0;
+}
+
+.adjuster-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   justify-content: center;
 }
 
 .status-indicator-bar {
   display: flex;
+  justify-content: center;
   gap: 6px;
   margin-bottom: 2px;
 }
@@ -348,6 +347,7 @@ body.is-desktop .preferences-group h4 {
   text-shadow: 0 0 10px rgba(255, 255, 255, 0.15);
   cursor: ns-resize;
   user-select: none;
+  text-align: center;
 }
 
 .digital-clock.overtime-active {
@@ -366,12 +366,11 @@ body.is-desktop .preferences-group h4 {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  margin-top: 6px;
+  justify-content: center;
 }
 
-.time-adjusters-group.mode-hidden {
-  visibility: hidden;
-  pointer-events: none;
+.mode-hidden {
+  display: none !important;
 }
 
 .adjust-btn {
@@ -397,6 +396,77 @@ body.is-desktop .preferences-group h4 {
   transform: scale(0.95);
 }
 
+/* --- Pomodoro Adjusters (Main Window, REPEAT mode) --- */
+.pomodoro-adjusters-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.pomo-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pomo-radio-group {
+  display: flex;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid var(--card-border);
+  flex-shrink: 0;
+}
+
+.pomo-radio {
+  background: rgba(255, 255, 255, 0.03);
+  border: none;
+  color: var(--text-muted);
+  font-size: 9px;
+  font-weight: 600;
+  padding: 2px 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-right: 1px solid var(--card-border);
+  line-height: 1.4;
+}
+
+.pomo-radio:last-child {
+  border-right: none;
+}
+
+.pomo-radio:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+}
+
+.pomo-radio.active {
+  background: rgba(56, 189, 248, 0.15);
+  color: var(--accent);
+}
+
+.pomo-value {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  min-width: 32px;
+  text-align: center;
+  line-height: 1;
+}
+
+.pomo-btn-group {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.pomo-btn-group .adjust-btn {
+  padding: 2px 5px;
+  font-size: 9px;
+}
+
 /* Mode Selector (Segmented Control) */
 .mode-selector {
   display: flex;
@@ -404,6 +474,8 @@ body.is-desktop .preferences-group h4 {
   border-radius: 6px;
   overflow: hidden;
   border: 1px solid var(--card-border);
+  width: 100%;
+  flex-shrink: 0;
 }
 
 .mode-btn {
@@ -439,10 +511,9 @@ body.is-desktop .preferences-group h4 {
 .action-buttons {
   display: flex;
   gap: 8px;
-  grid-column: span 2;
-  justify-content: flex-end;
+  justify-content: center;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
-  padding-top: 12px;
+  padding-top: 10px;
 }
 
 .action-btn {
@@ -451,12 +522,14 @@ body.is-desktop .preferences-group h4 {
   color: var(--text-primary);
   font-size: 13px;
   font-weight: 600;
-  padding: 8px 16px;
+  padding: 8px;
+  width: 36px;
+  height: 36px;
   border-radius: 8px;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -489,14 +562,6 @@ body.is-desktop .preferences-group h4 {
 .action-btn.start-btn.running-active:hover {
   background: linear-gradient(135deg, rgba(234, 179, 8, 0.25) 0%, rgba(234, 179, 8, 0.1) 100%);
   box-shadow: 0 0 15px rgba(234, 179, 8, 0.2);
-}
-
-.action-btn.settings-btn, .action-btn.fullscreen-btn {
-  padding: 8px;
-  width: 36px;
-  height: 36px;
-  justify-content: center;
-  border-radius: 8px;
 }
 
 /* --- Modals --- */
@@ -596,43 +661,6 @@ body.is-desktop .preferences-group h4 {
   border-color: var(--accent);
 }
 
-.duration-inputs {
-  display: flex;
-  gap: 12px;
-}
-
-.input-unit {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex: 1;
-}
-
-.input-unit input {
-  width: 100%;
-}
-
-.input-unit span {
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-
-.pomodoro-inputs {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.sub-input-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.sub-input-group label {
-  font-size: 10px;
-}
-
 /* Preferences options */
 .preferences-group h4 {
   font-size: 12px;
@@ -704,39 +732,6 @@ body.is-desktop .preferences-group h4 {
   border: solid white;
   border-width: 0 2px 2px 0;
   transform: rotate(45deg);
-}
-
-.save-button-row {
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  padding-top: 16px;
-  margin-top: 4px;
-  display: flex;
-  justify-content: flex-end;
-}
-
-body.is-desktop .save-button-row {
-  padding-top: 10px;
-}
-
-.modal-btn {
-  background: var(--accent);
-  border: none;
-  color: #000;
-  font-weight: 700;
-  padding: 10px 20px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.modal-btn:hover {
-  background: #7dd3fc;
-  box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
-}
-
-body.is-desktop .modal-btn {
-  padding: 6px 14px;
-  font-size: 13px;
 }
 
 /* Helper Utilities */

@@ -10,10 +10,10 @@
   "modes": {
     "window": {
       "title": "Work Bar Timer",
-      "width": 640,
-      "height": 300,
-      "minWidth": 640,
-      "minHeight": 300,
+      "width": 380,
+      "height": 402,
+      "minWidth": 300,
+      "minHeight": 380,
       "resizable": true,
       "alwaysOnTop": true,
       "borderless": true,

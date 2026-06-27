@@ -26,25 +26,19 @@ const badgePhase = document.getElementById('badge-phase') as HTMLSpanElement;
 // Modal Elements
 const settingsModal = document.getElementById('settings-modal') as HTMLDivElement;
 const modalClose = document.getElementById('modal-close') as HTMLButtonElement;
-const btnSaveSettings = document.getElementById('btn-save-settings') as HTMLButtonElement;
-// Setting Groups
-const groupCountdown = document.getElementById('group-countdown') as HTMLDivElement;
-const groupPomodoro = document.getElementById('group-pomodoro') as HTMLDivElement;
-
-// Form Inputs
-const inputCdMins = document.getElementById('input-cd-mins') as HTMLInputElement;
-const inputCdSecs = document.getElementById('input-cd-secs') as HTMLInputElement;
-const inputRepeatWork = document.getElementById('input-repeat-work') as HTMLInputElement;
-const inputRepeatWorkSecs = document.getElementById('input-repeat-work-secs') as HTMLInputElement;
-const inputRepeatBreak = document.getElementById('input-repeat-break') as HTMLInputElement;
-const inputRepeatBreakSecs = document.getElementById('input-repeat-break-secs') as HTMLInputElement;
-const inputRepeatCycles = document.getElementById('input-repeat-cycles') as HTMLInputElement;
 
 // Preferences Checkboxes
 const prefMute = document.getElementById('pref-mute') as HTMLInputElement;
 const prefFlash = document.getElementById('pref-flash') as HTMLInputElement;
 const prefNotification = document.getElementById('pref-notification') as HTMLInputElement;
 const prefWakelock = document.getElementById('pref-wakelock') as HTMLInputElement;
+
+// Pomodoro Inline Controls
+const pomodoroAdjustersGroup = document.querySelector('.pomodoro-adjusters-group') as HTMLDivElement;
+const pomoCurrentValue = document.getElementById('pomo-current-value') as HTMLSpanElement;
+const pomoRadioBtns = document.querySelectorAll('.pomo-radio');
+
+let pomoSelectedTarget: 'work' | 'break' | 'cycles' = 'work';
 
 // --- 20 Segments Initialization ---
 let segmentElements: HTMLDivElement[] = [];
@@ -197,75 +191,9 @@ document.addEventListener('visibilitychange', async () => {
   }
 });
 
-// --- Settings Form Modal Binding ---
-function updateSettingsFormVisibility() {
-  const mode = timer.getMode();
-  if (mode === 'REPEAT') {
-    groupCountdown.classList.add('hidden');
-    groupPomodoro.classList.remove('hidden');
-  } else if (mode === 'COUNT_UP') {
-    groupCountdown.classList.add('hidden');
-    groupPomodoro.classList.add('hidden');
-  } else {
-    groupCountdown.classList.remove('hidden');
-    groupPomodoro.classList.add('hidden');
-  }
-}
-
-function loadSettingsIntoForm() {
-  const config = timer.getConfig();
-  
-  const mins = Math.floor(config.durationSeconds / 60);
-  const secs = config.durationSeconds % 60;
-  inputCdMins.value = mins.toString();
-  inputCdSecs.value = secs.toString();
-  
-  inputRepeatWork.value = Math.floor(config.repeatWorkSeconds / 60).toString();
-  inputRepeatWorkSecs.value = (config.repeatWorkSeconds % 60).toString();
-  inputRepeatBreak.value = Math.floor(config.repeatBreakSeconds / 60).toString();
-  inputRepeatBreakSecs.value = (config.repeatBreakSeconds % 60).toString();
-  inputRepeatCycles.value = config.repeatCycles.toString();
-
-  updateSettingsFormVisibility();
-}
-
-function safeInt(value: string, fallback: number): number {
-  const n = parseInt(value, 10);
-  return Number.isFinite(n) ? n : fallback;
-}
-
-function saveSettingsFromForm() {
-  const mode = timer.getMode();
-  
-  const cdMins = safeInt(inputCdMins.value, 0);
-  const cdSecs = safeInt(inputCdSecs.value, 0);
-  const durationSeconds = cdMins * 60 + cdSecs;
-
-  const repeatWork = safeInt(inputRepeatWork.value, 25) * 60 + safeInt(inputRepeatWorkSecs.value, 0);
-  const repeatBreak = safeInt(inputRepeatBreak.value, 5) * 60 + safeInt(inputRepeatBreakSecs.value, 0);
-  const repeatCycles = safeInt(inputRepeatCycles.value, 4);
-
-  timer.configure({
-    mode,
-    durationSeconds,
-    repeatWorkSeconds: repeatWork,
-    repeatBreakSeconds: repeatBreak,
-    repeatCycles,
-  });
-
-  // Apply Wake Lock preference immediately
-  if (prefWakelock.checked && timer.getState() === 'RUNNING') {
-    requestWakeLock();
-  } else {
-    releaseWakeLock();
-  }
-
-  closeSettingsModal();
-}
-
+// --- Settings Modal ---
 function openSettingsModal() {
   timer.pause();
-  loadSettingsIntoForm();
   settingsModal.classList.remove('hidden');
   requestNotificationPermission();
 }
@@ -298,19 +226,41 @@ function handleTimeAdjustmentWheel(e: WheelEvent) {
     timer.adjustDuration(adjustAmount);
   }
 
-  loadSettingsIntoForm(); // keeps modal input fields synced
   // Soft tick sound to represent physical dial ticks
   playSound(600, 'sine', 0.03, 0.04);
 }
 
 // --- UI Sync (Renderer) ---
+function formatMinutes(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+}
+
+function updatePomodoroUI() {
+  const config = timer.getConfig();
+  if (pomoSelectedTarget === 'work') {
+    pomoCurrentValue.textContent = formatMinutes(config.repeatWorkSeconds);
+  } else if (pomoSelectedTarget === 'break') {
+    pomoCurrentValue.textContent = formatMinutes(config.repeatBreakSeconds);
+  } else {
+    pomoCurrentValue.textContent = config.repeatCycles.toString();
+  }
+
+  pomoRadioBtns.forEach((btn) => {
+    const htmlBtn = btn as HTMLButtonElement;
+    const target = htmlBtn.dataset.pomoTarget as string;
+    htmlBtn.classList.toggle('active', target === pomoSelectedTarget);
+  });
+}
+
 function updatePauseButton(state: TimerState): void {
   if (state === 'RUNNING') {
     btnStartPause.classList.add('running-active');
-    btnStartPause.innerHTML = '<span class="btn-icon">⏸</span> <span class="btn-text">一時停止</span>';
+    btnStartPause.innerHTML = '<span class="btn-icon">⏸</span>';
   } else {
     btnStartPause.classList.remove('running-active');
-    btnStartPause.innerHTML = '<span class="btn-icon">▶</span> <span class="btn-text">スタート</span>';
+    btnStartPause.innerHTML = '<span class="btn-icon">▶</span>';
   }
 }
 
@@ -379,7 +329,7 @@ function renderUI() {
     }
   });
 
-  // 6. Show/hide time adjuster buttons (COUNT_DOWN only)
+  // 6. Show/hide time adjuster buttons (COUNT_DOWN) and pomodoro adjusters (REPEAT)
   const adjustersGroup = document.querySelector('.time-adjusters-group');
   if (adjustersGroup) {
     if (mode === 'COUNT_DOWN') {
@@ -387,6 +337,18 @@ function renderUI() {
     } else {
       adjustersGroup.classList.add('mode-hidden');
     }
+  }
+  if (pomodoroAdjustersGroup) {
+    if (mode === 'REPEAT') {
+      pomodoroAdjustersGroup.classList.remove('mode-hidden');
+    } else {
+      pomodoroAdjustersGroup.classList.add('mode-hidden');
+    }
+  }
+
+  // Sync pomodoro inline display when in REPEAT mode
+  if (mode === 'REPEAT') {
+    updatePomodoroUI();
   }
 }
 
@@ -620,14 +582,47 @@ function setupEventListeners() {
         timer.adjustDuration(adjustSeconds);
       }
 
-      loadSettingsIntoForm();
+      playSound(600, 'sine', 0.03, 0.04);
+    });
+  });
+
+  // Pomo radio toggle
+  document.querySelectorAll('.pomo-radio').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      const target = e.currentTarget as HTMLButtonElement;
+      pomoSelectedTarget = target.dataset.pomoTarget as 'work' | 'break' | 'cycles';
+      updatePomodoroUI();
+    });
+  });
+
+  // Pomo adjust buttons (unified: work/break/cycles)
+  document.querySelectorAll('[data-pomo-adjust]').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      if (timer.getMode() !== 'REPEAT') return;
+      const target = e.currentTarget as HTMLButtonElement;
+      const delta = parseInt(target.dataset.pomoAdjust || '0', 10);
+      const config = timer.getConfig();
+      const update: Partial<TimerConfig> = {};
+
+      if (pomoSelectedTarget === 'work') {
+        const newVal = Math.max(0, Math.min(199 * 60 + 59, config.repeatWorkSeconds + delta));
+        update.repeatWorkSeconds = newVal;
+      } else if (pomoSelectedTarget === 'break') {
+        const newVal = Math.max(0, Math.min(199 * 60 + 59, config.repeatBreakSeconds + delta));
+        update.repeatBreakSeconds = newVal;
+      } else {
+        const newVal = Math.max(1, Math.min(99, config.repeatCycles + Math.sign(delta)));
+        update.repeatCycles = newVal;
+      }
+
+      timer.configure(update);
+      renderUI();
       playSound(600, 'sine', 0.03, 0.04);
     });
   });
 
   // Modal actions
   modalClose.addEventListener('click', closeSettingsModal);
-  btnSaveSettings.addEventListener('click', saveSettingsFromForm);
   // Wheel scrolling (simulating dials)
   digitalClock.addEventListener('wheel', handleTimeAdjustmentWheel, { passive: false });
   barDisplay.addEventListener('wheel', handleTimeAdjustmentWheel, { passive: false });
@@ -659,7 +654,6 @@ function mainLoop(timestamp: number) {
 window.addEventListener('DOMContentLoaded', async () => {
   initializeBarSegments();
   setupEventListeners();
-  loadSettingsIntoForm();
   renderUI();
   updatePauseButton(timer.getState());
   

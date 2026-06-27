@@ -54,10 +54,10 @@ export class Timer {
       this.durationSeconds = Math.max(0, config.durationSeconds);
     }
     if (config.repeatWorkSeconds !== undefined) {
-      this.repeatWorkSeconds = Math.max(1, config.repeatWorkSeconds);
+      this.repeatWorkSeconds = Math.max(0, config.repeatWorkSeconds);
     }
     if (config.repeatBreakSeconds !== undefined) {
-      this.repeatBreakSeconds = Math.max(1, config.repeatBreakSeconds);
+      this.repeatBreakSeconds = Math.max(0, config.repeatBreakSeconds);
     }
     if (config.repeatCycles !== undefined) {
       this.repeatCycles = Math.max(1, Math.min(99, config.repeatCycles));

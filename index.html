@@ -55,37 +55,59 @@
     <section class="dashboard-panel">
       <!-- Digital Display & Status -->
       <div class="timer-display-group">
-        <div class="status-indicator-bar">
-          <span id="badge-mode" class="status-badge">COUNTDOWN</span>
-          <span id="badge-cycle" class="status-badge hidden">CYCLE 1/4</span>
-          <span id="badge-phase" class="status-badge hidden">WORK</span>
+        <div class="clock-area">
+          <div class="status-indicator-bar">
+            <span id="badge-mode" class="status-badge">COUNTDOWN</span>
+            <span id="badge-cycle" class="status-badge hidden">CYCLE 1/4</span>
+            <span id="badge-phase" class="status-badge hidden">WORK</span>
+          </div>
+          <div id="digital-clock" class="digital-clock" title="ホイールスクロールで時間調整">05:00</div>
         </div>
-        <div id="digital-clock" class="digital-clock" title="ホイールスクロールで時間調整">05:00</div>
-        <!-- Time Adjusters (Incremental) -->
-        <div class="time-adjusters-group">
-          <button class="adjust-btn" data-adjust="-600">-10分</button>
-          <button class="adjust-btn" data-adjust="-60">-1分</button>
-          <button class="adjust-btn" data-adjust="-10">-10秒</button>
-          <button class="adjust-btn" data-adjust="10">+10秒</button>
-          <button class="adjust-btn" data-adjust="60">+1分</button>
-          <button class="adjust-btn" data-adjust="600">+10分</button>
-        </div>
-      </div>
+        <div class="adjuster-area">
+          <!-- Time Adjusters (Incremental) -->
+          <div class="time-adjusters-group">
+            <button class="adjust-btn" data-adjust="-600">-10分</button>
+            <button class="adjust-btn" data-adjust="-60">-1分</button>
+            <button class="adjust-btn" data-adjust="-10">-10秒</button>
+            <button class="adjust-btn" data-adjust="10">+10秒</button>
+            <button class="adjust-btn" data-adjust="60">+1分</button>
+            <button class="adjust-btn" data-adjust="600">+10分</button>
+          </div>
 
-      <!-- Mode Selector (Segmented Control) -->
-      <div class="mode-selector">
-        <button class="mode-btn active" data-mode="COUNT_DOWN">COUNT DOWN</button>
-        <button class="mode-btn" data-mode="COUNT_UP">COUNT UP</button>
-        <button class="mode-btn" data-mode="REPEAT">POMODORO</button>
+          <!-- Pomodoro Adjusters (REPEAT mode only) -->
+          <div class="pomodoro-adjusters-group mode-hidden">
+            <div class="pomo-radio-group">
+              <button class="pomo-radio active" data-pomo-target="work">作業時間</button>
+              <button class="pomo-radio" data-pomo-target="break">休憩時間</button>
+              <button class="pomo-radio" data-pomo-target="cycles">サイクル</button>
+            </div>
+            <div class="pomo-controls-row">
+              <span id="pomo-current-value" class="pomo-value">25:00</span>
+              <div class="pomo-btn-group">
+                <button class="adjust-btn" data-pomo-adjust="-60">-1分</button>
+                <button class="adjust-btn" data-pomo-adjust="-10">-10秒</button>
+                <button class="adjust-btn" data-pomo-adjust="10">+10秒</button>
+                <button class="adjust-btn" data-pomo-adjust="60">+1分</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mode Selector (Segmented Control) -->
+        <div class="mode-selector">
+          <button class="mode-btn active" data-mode="COUNT_DOWN">COUNT DOWN</button>
+          <button class="mode-btn" data-mode="COUNT_UP">COUNT UP</button>
+          <button class="mode-btn" data-mode="REPEAT">POMODORO</button>
+        </div>
       </div>
 
       <!-- Action Buttons -->
       <div class="action-buttons">
         <button id="btn-start-pause" class="action-btn start-btn" title="スペースキーでも動作">
-          <span class="btn-icon">▶</span> <span class="btn-text">スタート</span>
+          <span class="btn-icon">▶</span>
         </button>
         <button id="btn-reset" class="action-btn reset-btn" title="Escキーでも動作">
-          <span class="btn-icon">↺</span> <span class="btn-text">リセット</span>
+          <span class="btn-icon">↺</span>
         </button>
         <button id="btn-settings" class="action-btn settings-btn" title="設定を開く">
           <span class="btn-icon">⚙</span>
@@ -106,57 +128,6 @@
       </div>
       <div class="modal-body">
         
-        <!-- Countdown Settings -->
-        <div id="group-countdown" class="settings-group mode-settings-group">
-          <label>タイマー時間</label>
-          <div class="duration-inputs">
-            <div class="input-unit">
-              <input type="number" id="input-cd-mins" min="0" max="199" value="5">
-              <span>分</span>
-            </div>
-            <div class="input-unit">
-              <input type="number" id="input-cd-secs" min="0" max="50" step="10" value="0">
-              <span>秒</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Pomodoro Repeat Settings -->
-        <div id="group-pomodoro" class="settings-group mode-settings-group hidden">
-          <div class="pomodoro-inputs">
-            <div class="sub-input-group">
-              <label>作業時間</label>
-              <div class="duration-inputs">
-                <div class="input-unit">
-                  <input type="number" id="input-repeat-work" min="0" max="199" value="25">
-                  <span>分</span>
-                </div>
-                <div class="input-unit">
-                  <input type="number" id="input-repeat-work-secs" min="0" max="59" value="0">
-                  <span>秒</span>
-                </div>
-              </div>
-            </div>
-            <div class="sub-input-group">
-              <label>休憩時間</label>
-              <div class="duration-inputs">
-                <div class="input-unit">
-                  <input type="number" id="input-repeat-break" min="0" max="199" value="5">
-                  <span>分</span>
-                </div>
-                <div class="input-unit">
-                  <input type="number" id="input-repeat-break-secs" min="0" max="59" value="0">
-                  <span>秒</span>
-                </div>
-              </div>
-            </div>
-            <div class="sub-input-group">
-              <label for="input-repeat-cycles">繰り返し回数 (回)</label>
-              <input type="number" id="input-repeat-cycles" min="1" max="99" value="4">
-            </div>
-          </div>
-        </div>
-
         <!-- Global Preferences -->
         <div class="settings-group preferences-group">
           <h4>機能設定</h4>
@@ -184,11 +155,6 @@
             <span class="checkmark"></span>
             画面スリープを防止する (Wake Lock)
           </label>
-        </div>
-
-        <!-- Save button inside modal body (no dedicated footer bar) -->
-        <div class="save-button-row">
-          <button id="btn-save-settings" class="modal-btn save-btn">設定を適用</button>
         </div>
       </div>
     </div>
