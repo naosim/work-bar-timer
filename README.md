@@ -1,5 +1,5 @@
 # Work Bar Timer
-
+https://naosim.github.io/work-bar-timer/
 キングジム「ビジュアルバータイマー VBT20」を模した、20セグメントの視覚的なバーで残り時間を表示するクロスプラットフォームタイマーアプリ。
 
 ## 機能
