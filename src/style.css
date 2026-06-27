@@ -37,7 +37,7 @@
 
   /* Fonts */
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-mono: 'Orbitron', monospace;
+  --font-mono: 'Share Tech Mono', monospace;
 
   /* Layout Constants */
   --titlebar-height: 30px;
@@ -349,7 +349,7 @@ body.is-desktop .preferences-group h4 {
 
 .digital-clock {
   font-family: var(--font-mono);
-  font-size: 38px;
+  font-size: 44px;
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: 1px;
