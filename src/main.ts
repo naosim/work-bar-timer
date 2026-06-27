@@ -22,6 +22,7 @@ const btnClose = document.getElementById('btn-close') as HTMLButtonElement;
 const badgeMode = document.getElementById('badge-mode') as HTMLSpanElement;
 const badgeCycle = document.getElementById('badge-cycle') as HTMLSpanElement;
 const badgePhase = document.getElementById('badge-phase') as HTMLSpanElement;
+const totalRemaining = document.getElementById('total-remaining') as HTMLDivElement;
 
 // Modal Elements
 const settingsModal = document.getElementById('settings-modal') as HTMLDivElement;
@@ -349,6 +350,10 @@ function renderUI() {
   // Sync pomodoro inline display when in REPEAT mode
   if (mode === 'REPEAT') {
     updatePomodoroUI();
+    totalRemaining.classList.remove('hidden');
+    totalRemaining.textContent = `Total ${formatMinutes(timer.getTotalRemainingSeconds())}`;
+  } else {
+    totalRemaining.classList.add('hidden');
   }
 }
 
@@ -408,6 +413,46 @@ function toggleFullscreen() {
   }
 }
 
+// --- Desktop Logger ---
+function setupDesktopLogger() {
+  if (typeof Neutralino === 'undefined') return;
+  const NL_PATH = (window as any).NL_PATH as string;
+  const logDir = NL_PATH + '/logs';
+  const logFile = logDir + '/app.log';
+
+  const fs = (Neutralino as any).filesystem;
+  fs.createDirectory(logDir).catch(() => {});
+  fs.writeFile(logFile, '').catch(() => {});
+
+  const originalLog = console.log.bind(console);
+  const originalWarn = console.warn.bind(console);
+  const originalError = console.error.bind(console);
+
+  function writeLog(level: string, args: any[]) {
+    const ts = new Date().toISOString();
+    const msg = args.map(a =>
+      typeof a === 'string' ? a : JSON.stringify(a)
+    ).join(' ');
+    fs.appendFile(logFile, `[${ts}] [${level}] ${msg}\n`)
+      .catch(() => {});
+  }
+
+  console.log = function (...args: any[]) {
+    originalLog(...args);
+    writeLog('LOG', args);
+  };
+  console.warn = function (...args: any[]) {
+    originalWarn(...args);
+    writeLog('WARN', args);
+  };
+  console.error = function (...args: any[]) {
+    originalError(...args);
+    writeLog('ERROR', args);
+  };
+
+  console.log('[Logger] Desktop logging initialized ->', logFile);
+}
+
 // --- Desktop Mode (Neutralino API Interface) ---
 let isAlwaysOnTop = true;
 
@@ -428,6 +473,7 @@ async function setupDesktopFeatures() {
   try {
     // Initialize Neutralino
     await Neutralino.init();
+    setupDesktopLogger();
 
     // Custom Drag Region (exclude titlebar controls from drag)
     await Neutralino.window.setDraggableRegion('custom-titlebar', {

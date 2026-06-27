@@ -24,7 +24,8 @@
   "nativeAllowList": [
     "app.*",
     "window.*",
-    "os.*"
+    "os.*",
+    "filesystem.*"
   ],
   "cli": {
     "resourcesPath": "/dist/",

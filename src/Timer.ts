@@ -218,6 +218,28 @@ export class Timer {
   }
 
   /**
+   * Returns the total remaining time across all remaining pomodoro phases.
+   */
+  public getTotalRemainingSeconds(): number {
+    if (this.mode !== 'REPEAT') return 0;
+    if (this.state === 'TIME_UP') return 0;
+    if (this.state === 'IDLE') {
+      return this.repeatCycles * (this.repeatWorkSeconds + this.repeatBreakSeconds);
+    }
+
+    const target = this.currentPhase === 'WORK' ? this.repeatWorkSeconds : this.repeatBreakSeconds;
+    let total = Math.max(0, Math.floor(target - this.phaseElapsedSeconds));
+
+    if (this.currentPhase === 'WORK') {
+      total += this.repeatBreakSeconds;
+    }
+
+    total += (this.repeatCycles - this.currentCycle) * (this.repeatWorkSeconds + this.repeatBreakSeconds);
+
+    return total;
+  }
+
+  /**
    * Calculates which of the 20 segments are lit and their respective colors.
    * Segments are ordered 0 (left/red) to 19 (right/green).
    */
